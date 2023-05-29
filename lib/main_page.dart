@@ -11,12 +11,15 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
 
   final List<String> categories = ['Top', 'Movie', 'TV', 'Airing', 'Upcoming', 'Completed'];
-  final List<String> sorting = ['Asc', 'Desc'];
-  final List<String> orderBy = ['Rank', 'Score', 'Popularity', 'Favorites'];
+  final List<String> sorting = ['Select', 'Asc', 'Desc'];
+  final List<String> orderBy = ['Select', 'Rank', 'Score', 'Popularity', 'Favorites'];
 
   String chosenCategory = 'Top';
-  String chosenSorting = 'Asc';
-  String chosenOrderBy = 'Rank';
+  String chosenSorting = 'Select';
+  String chosenOrderBy = 'Select';
+
+  int currentPage = 1;
+  bool isInFirstPage = true;
 
   bool isTopChosen = true;
 
@@ -31,7 +34,7 @@ class _MainPageState extends State<MainPage> {
         children: [
           _categoriesField(),
           _orderSortingField(),
-          _animeListField()
+          _animeListField(),
         ],
       ),
     );
@@ -191,15 +194,58 @@ class _MainPageState extends State<MainPage> {
 
           return Card(
             child: InkWell(
-              onTap: (){},
-              child: GridTile(
-                child: Image.network(
-                  anime['images']['jpg']['image_url'],
-                  fit: BoxFit.fill,
-                ),
-                footer: Text(
-                  animeTitle,
-                ),
+              onTap: () {},
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          anime['images']['jpg']['image_url'],
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      animeTitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20, bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              anime['aired']['prop']['from']['year'].toString(),
+                            ),
+                            Text(
+                              'Score: ' + anime['score'].toString(),
+                            )
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 20, bottom: 10),
+                        child: IconButton(
+                          onPressed: (){},
+                          icon: Icon(Icons.bookmark_border),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           );

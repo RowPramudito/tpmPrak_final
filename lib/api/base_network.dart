@@ -6,7 +6,15 @@ class BaseNetwork {
 
   static Future<List<dynamic>> getSearch(String param, String category, String orderBy, String sort) async {
 
-    final String fullUrl = baseUrl + '/anime?$param=$category&order_by=$orderBy&sort=$sort';
+    String fullUrl = baseUrl + '/anime?$param=$category&sfw=true';
+
+    if(orderBy.isNotEmpty) {
+      fullUrl += '&order_by=$orderBy';
+    }
+    else if(sort.isNotEmpty) {
+      fullUrl += '&sort=$sort';
+    }
+
     final response = await http.get(Uri.parse(fullUrl));
 
     if (response.statusCode == 200) {

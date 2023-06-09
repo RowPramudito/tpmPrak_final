@@ -1,17 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'package:tpm_prak_final/api/data_source.dart';
 import 'package:tpm_prak_final/pages/anime_detail_page.dart';
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox<String>('bookmarked_anime_titles');
+  await SharedPreferences.getInstance();
+  runApp(MyApp());
+}
+
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        primarySwatch: Colors.red,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: AnimePage(onBookmark: (String ) {  },),
+    );
+  }
+}
 
 class AnimePage extends StatefulWidget {
-  const AnimePage({Key? key}) : super(key: key);
+  final Function(String) onBookmark;
+
+  const AnimePage({Key? key, required this.onBookmark}) : super(key: key);
 
   @override
-  State<AnimePage> createState() => _AnimePageState();
+  _AnimePageState createState() => _AnimePageState();
 }
 
 class _AnimePageState extends State<AnimePage> {
-
   final List<String> categories = ['Top', 'Movie', 'TV', 'Airing', 'Upcoming', 'Completed'];
   final List<String> sorting = ['Select', 'Asc', 'Desc'];
   final List<String> orderBy = ['Select', 'Rank', 'Score', 'Popularity', 'Favorites'];
@@ -24,6 +51,34 @@ class _AnimePageState extends State<AnimePage> {
   bool isInFirstPage = true;
 
   bool isTopChosen = true;
+  Box<String>? bookmarkedAnimeBox;
+  List<String> bookmarkedAnimeTitles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _openBox();
+    _loadBookmarkedAnimeTitles();
+  }
+
+
+  Future<void> _openBox() async {
+    final appDocumentDir = await getApplicationDocumentsDirectory();
+    Hive.init(appDocumentDir.path);
+    bookmarkedAnimeBox = await Hive.openBox<String>('bookmarked_anime_titles');
+  }
+
+  Future<void> _loadBookmarkedAnimeTitles() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    bookmarkedAnimeTitles = sharedPreferences.getStringList('bookmarked_anime_titles') ?? [];
+  }
+
+
+  Future<void> _saveBookmarkedAnimeTitles() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    await sharedPreferences.setStringList('bookmarked_anime_titles', bookmarkedAnimeTitles);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +87,7 @@ class _AnimePageState extends State<AnimePage> {
         children: [
           _categoriesField(),
           _orderSortingField(),
+          _bookmarkButton(),
           _animeListField(),
         ],
       ),
@@ -41,7 +97,7 @@ class _AnimePageState extends State<AnimePage> {
   Widget _categoriesField() {
     return Container(
       padding: const EdgeInsets.all(10),
-      height: MediaQuery.of(context).size.height/12,
+      height: MediaQuery.of(context).size.height / 12,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -53,21 +109,19 @@ class _AnimePageState extends State<AnimePage> {
             child: OutlinedButton(
               child: Text(
                 categories[index],
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               style: ElevatedButton.styleFrom(
-                  primary: identical(chosenCategory, categories[index]) ? Colors.red : Colors.white,
-                  onPrimary: identical(chosenCategory, categories[index]) ? Colors.white : Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  )
+                primary: identical(chosenCategory, categories[index]) ? Colors.red : Colors.white,
+                onPrimary: identical(chosenCategory, categories[index]) ? Colors.white : Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
-              onPressed: (){
+              onPressed: () {
                 setState(() {
                   chosenCategory = categories[index];
-                  if(chosenCategory != 'Top') {
+                  if (chosenCategory != 'Top') {
                     isTopChosen = false;
                   }
                 });
@@ -82,7 +136,7 @@ class _AnimePageState extends State<AnimePage> {
   Widget _orderSortingField() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-      height: MediaQuery.of(context).size.height/12,
+      height: MediaQuery.of(context).size.height / 12,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -91,10 +145,12 @@ class _AnimePageState extends State<AnimePage> {
               const Text(
                 'Order by: ',
               ),
-              const SizedBox(width: 10,),
+              const SizedBox(
+                width: 10,
+              ),
               SizedBox(
                 width: 100,
-                child: DropdownButton( //dropdown button order_by
+                child: DropdownButton(
                   value: chosenOrderBy,
                   icon: const Icon(
                     Icons.arrow_downward,
@@ -115,16 +171,18 @@ class _AnimePageState extends State<AnimePage> {
               ),
             ],
           ),
-          SizedBox(width: MediaQuery.of(context).size.width * 0.15,),
+          SizedBox(width: MediaQuery.of(context).size.width * 0.15),
           Row(
             children: [
               const Text(
                 'Sorting: ',
               ),
-              const SizedBox(width: 10,),
+              const SizedBox(
+                width: 10,
+              ),
               SizedBox(
                 width: 100,
-                child: DropdownButton( //dropdown button sorting
+                child: DropdownButton(
                   value: chosenSorting,
                   icon: const Icon(
                     Icons.arrow_downward,
@@ -150,23 +208,34 @@ class _AnimePageState extends State<AnimePage> {
     );
   }
 
+  Widget _bookmarkButton() {
+    return ElevatedButton(
+      onPressed: () async {
+        await _saveBookmarkedAnimeTitles(); // Save bookmarked anime titles before navigating
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookmarkedAnimePage(bookmarkedAnimeTitles: bookmarkedAnimeTitles),
+          ),
+        );
+      },
+      child: const Text('Bookmarked Anime'),
+    );
+  }
+
+
   Widget _animeListField() {
     return Expanded(
       child: FutureBuilder<List<dynamic>>(
         future: DataSource.instance.loadAnimeList(chosenCategory, chosenOrderBy, chosenSorting),
         builder: (context, snapshot) {
-          //print(chosenCategory);
-          //print(chosenOrderBy);
-          //print(chosenSorting);
-          if(snapshot.hasError) {
+          if (snapshot.hasError) {
             return const Center(
               child: Text('Error in fetching the data.'),
             );
-          }
-          else if(snapshot.hasData && snapshot.data != null) {
+          } else if (snapshot.hasData && snapshot.data != null) {
             return _buildSuccessSection(snapshot);
-          }
-          else {
+          } else {
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -189,6 +258,7 @@ class _AnimePageState extends State<AnimePage> {
       itemBuilder: (context, index) {
         final anime = animeList[index];
         final animeTitle = anime['titles'][0]['title'];
+        final isBookmarked = bookmarkedAnimeTitles.contains(animeTitle);
 
         return Card(
           child: InkWell(
@@ -237,15 +307,27 @@ class _AnimePageState extends State<AnimePage> {
                           ),
                           Text(
                             'Score: ' + anime['score'].toString(),
-                          )
+                          ),
                         ],
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(right: 20, bottom: 10),
                       child: IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.bookmark_border),
+                        onPressed: () {
+                          setState(() {
+                            if (isBookmarked) {
+                              bookmarkedAnimeTitles.remove(animeTitle);
+                            } else {
+                              bookmarkedAnimeTitles.add(animeTitle);
+                            }
+                            _saveBookmarkedAnimeTitles();
+                          });
+                        },
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked ? Colors.red : Colors.black,
+                        ),
                       ),
                     ),
                   ],
@@ -255,6 +337,29 @@ class _AnimePageState extends State<AnimePage> {
           ),
         );
       },
+    );
+  }
+}
+
+class BookmarkedAnimePage extends StatelessWidget {
+  final List<String> bookmarkedAnimeTitles;
+
+  const BookmarkedAnimePage({Key? key, required this.bookmarkedAnimeTitles}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bookmarked Anime'),
+      ),
+      body: ListView.builder(
+        itemCount: bookmarkedAnimeTitles.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(bookmarkedAnimeTitles[index]),
+          );
+        },
+      ),
     );
   }
 }

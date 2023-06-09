@@ -1,4 +1,8 @@
-# tpm_prak_final
+# Mobile Technology and Programming - Final Project
+
+### Group Member
+Haidarrachman Gustavian Rahardjo / 123200075
+Rowang Pramudito / 123200098
 
 A new Flutter project.
 

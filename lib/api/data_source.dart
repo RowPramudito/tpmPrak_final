@@ -7,13 +7,6 @@ class DataSource {
 
   Future<List<dynamic>> loadAnimeList(String category, String orderBy, String sort){
 
-    if(sort == 'Select') {
-      sort = '';
-    }
-    if(orderBy == 'Select') {
-      orderBy = '';
-    }
-
     if(category == 'Movie' || category == 'TV') {
       return BaseNetwork.getSearch('type', category, orderBy, sort);
     }

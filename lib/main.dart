@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
-import 'main_page.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:tpm_prak_final/db_model/user.dart';
+import 'package:tpm_prak_final/main_page.dart';
+import 'package:tpm_prak_final/pages/login_page.dart';
 
-void main() {
+String boxName = 'USER';
+
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter<UserModel>(UserModelAdapter());
+  await Hive.openBox<UserModel>(boxName);
   runApp(const MyApp());
 }
 
@@ -12,9 +21,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'AniList',
 
-      home: MainPage(),
+      home: LoginPage(),
     );
   }
 }
